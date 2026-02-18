@@ -2,8 +2,13 @@
 name = "butt-head"
 version = "0.1.0"
 edition = "2024"
+authors = ["Esben Dueholm Nørgaard"]
+license = "MIT OR Apache-2.0"
 description = "A no_std button input processing library for embedded systems"
-license = "MIT"
+repository = "https://github.com/HybridChild/butt-head"
+keywords = ["embedded", "button", "switch", "no-std"]
+categories = ["embedded", "no-std"]
+exclude = ["examples/", "tools/"]
 
 [features]
 default = []
