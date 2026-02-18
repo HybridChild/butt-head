@@ -2,6 +2,7 @@ use crate::TimeDuration;
 
 /// A button event produced by the state machine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Event<D: TimeDuration> {
     /// The button was pressed. Fires immediately on press edge.
     Press,

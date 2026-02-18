@@ -2,6 +2,7 @@ use crate::TimeDuration;
 
 /// Indicates when `update()` should next be called.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ServiceTiming<D: TimeDuration> {
     /// Call back as soon as possible.
     Immediate,

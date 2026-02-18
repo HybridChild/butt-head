@@ -7,6 +7,7 @@ use crate::time::TimeInstant;
 
 /// The result of a single `update()` call.
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UpdateResult<D: TimeDuration> {
     pub event: Option<Event<D>>,
     pub next_service: ServiceTiming<D>,
