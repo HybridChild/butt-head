@@ -140,7 +140,7 @@ static CONFIG: Config<MyDuration> = Config {
 let mut button = ButtHead::new(&CONFIG);
 
 loop {
-    let result = button.update(pin.is_high(), now());
+    let result = button.update(debounced_pin.is_high(), now());
 
     if let Some(event) = result.event {
         match event {

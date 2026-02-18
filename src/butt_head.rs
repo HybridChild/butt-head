@@ -31,11 +31,11 @@ impl<I: TimeInstant> ButtHead<I> {
         }
     }
 
-    pub fn update(&mut self, raw_input: bool, now: I) -> UpdateResult<I::Duration> {
+    pub fn update(&mut self, is_pressed: bool, now: I) -> UpdateResult<I::Duration> {
         let input = if self.config.active_low {
-            !raw_input
+            !is_pressed
         } else {
-            raw_input
+            is_pressed
         };
 
         let edge = if input != self.prev_input {
@@ -47,6 +47,9 @@ impl<I: TimeInstant> ButtHead<I> {
 
         let (event, next_service) = self.state_machine.update(edge, now);
 
-        UpdateResult { event, next_service }
+        UpdateResult {
+            event,
+            next_service,
+        }
     }
 }
