@@ -1,2 +1,7 @@
+.claude/
+.vscode/
+.DS_Store
+
 Cargo.lock
 /target
+/examples/*/target/
