@@ -1,15 +1,11 @@
 # butt-head — Vision
 
-A `no_std` Rust library for processing button inputs in embedded systems. Transforms
-clean boolean pin states into rich button events through a configurable state machine.
-Pure logic — no I/O, no HAL, no interrupts. The button counterpart to
-[pot-head](https://crates.io/crates/pot-head).
+A `no_std` Rust library for processing button inputs in embedded systems. Transforms clean boolean pin states into rich button events through a configurable state machine. Pure logic — no I/O, no HAL, no interrupts. The button counterpart to [pot-head](https://crates.io/crates/pot-head).
 
 ## Design Philosophy
 
 - **Pure abstraction** — no hardware coupling. Takes a `bool` + an instant, returns events.
-- **Focused** — gesture recognition only. Debouncing is out of scope; handle it upstream
-  with hardware or a dedicated crate.
+- **Focused** — gesture recognition only. Debouncing is out of scope; handle it upstream with hardware or a dedicated crate.
 - **Testable** — unit test with `true`/`false` and fake timestamps, no mocks needed.
 - **Static config** — `&'static Config` stored in flash, compile-time validated via `const fn validate()`.
 - **Minimal footprint** — documented RAM/flash usage, benchmarked on target platforms.
@@ -17,9 +13,7 @@ Pure logic — no I/O, no HAL, no interrupts. The button counterpart to
 
 ## Time Abstraction
 
-Borrows the trait pattern from [rgb-sequencer](https://crates.io/crates/rgb-sequencer).
-The user passes the current instant on each `update()` call. The crate never touches
-hardware timers or clocks.
+Borrows the trait pattern from [rgb-sequencer](https://crates.io/crates/rgb-sequencer). The user passes the current instant on each `update()` call. The crate never touches hardware timers or clocks.
 
 ```rust
 pub trait TimeDuration: Copy + PartialEq {
@@ -32,6 +26,8 @@ pub trait TimeDuration: Copy + PartialEq {
 pub trait TimeInstant: Copy {
     type Duration: TimeDuration;
     fn duration_since(&self, earlier: Self) -> Self::Duration;
+    fn checked_add(self, duration: Self::Duration) -> Option<Self>;
+    fn checked_sub(self, duration: Self::Duration) -> Option<Self>;
 }
 ```
 
@@ -50,9 +46,8 @@ pub enum Event<D: TimeDuration> {
     Release { duration: D },
 
     /// A complete click gesture (press + release, no hold).
-    /// `count` starts at 1. Fires immediately on each release.
-    /// A double-click produces `Click { count: 1 }` on first release,
-    /// then `Click { count: 2 }` on second release.
+    /// `count` starts at 1. Fires once after `click_timeout` expires with no
+    /// further press. A double-click produces a single `Click { count: 2 }`.
     Click { count: u8 },
 
     /// The button is being held. Fires repeatedly at a configured interval.
@@ -65,19 +60,14 @@ pub enum Event<D: TimeDuration> {
 
 ### Event semantics
 
-- **Click fires immediately** — no waiting for a multi-click timeout. The first release
-  emits `Click { count: 1 }`, the second `Click { count: 2 }`, etc. Zero added latency.
-- **Hold suppresses Click** — if any `Hold` event was emitted during a press, the
-  subsequent release does NOT emit `Click`. A long press is not a click.
-- **Hold unifies press-and-hold with click-and-hold** — `clicks_before` distinguishes
-  them. The user matches on the value they care about.
-- **Hold level encodes duration** — the user can compute real duration as
-  `hold_delay + level * hold_interval` if needed.
+- **Click fires after timeout** — `Click { count }` is emitted once the `click_timeout` expires with no further press. This ensures a double-click never also triggers a single-click. The cost is added latency on every click equal to `click_timeout`.
+- **Hold suppresses Click** — if any `Hold` event was emitted during a press, the subsequent release does NOT emit `Click`. A long press is not a click.
+- **Hold unifies press-and-hold with click-and-hold** — `clicks_before` distinguishes them. The user matches on the value they care about.
+- **Hold level encodes duration** — the user can compute real duration as `hold_delay + level * hold_interval` if needed.
 
 ## Service Timing
 
-Inspired by [rgb-sequencer](https://crates.io/crates/rgb-sequencer), `update()` returns
-both the event and a hint telling the caller when to call again:
+Inspired by [rgb-sequencer](https://crates.io/crates/rgb-sequencer), `update()` returns both the event and a hint telling the caller when to call again:
 
 ```rust
 pub struct UpdateResult<D: TimeDuration> {
@@ -95,12 +85,9 @@ pub enum ServiceTiming<D> {
 }
 ```
 
-The contract: call `update()` when the pin changes state OR when the `next_service`
-delay expires. Missing a deadline is not catastrophic — the state machine catches up on
-the next call. Extra calls are harmless — unchanged input returns `Idle` with no event.
+The contract: call `update()` when the pin changes state OR when the `next_service` delay expires. Missing a deadline is not catastrophic — the state machine catches up on the next call. Extra calls are harmless — unchanged input returns `Idle` with no event.
 
-This enables optimal power usage: sleep during idle, wake on interrupt, precise
-timer-driven wakeups during interaction.
+This enables optimal power usage: sleep during idle, wake on interrupt, precise timer-driven wakeups during interaction.
 
 ## Configuration
 
@@ -212,7 +199,7 @@ Operates on clean, pre-debounced edges. Three states:
 | Input         | Guard                 | Action                                                  | Next State                      | next_service           |
 | ------------- | --------------------- | ------------------------------------------------------- | ------------------------------- | ---------------------- |
 | Edge::Release | hold_level > 0        | emit `Release { duration }`                             | Idle                            | `Idle`                 |
-| Edge::Release | hold_level == 0       | emit `Release { duration }`, emit `Click { count + 1 }` | WaitForMultiClick { count + 1 } | `Delay(click_timeout)` |
+| Edge::Release | hold_level == 0       | emit `Release { duration }`                             | WaitForMultiClick { count + 1 } | `Delay(click_timeout)` |
 | —             | hold deadline reached | emit `Hold { clicks_before: count, level }`             | hold_level += 1                 | `Delay(hold_interval)` |
 | —             | no deadline reached   | —                                                       | (unchanged)                     | `Delay(remaining)`     |
 
@@ -221,7 +208,7 @@ Operates on clean, pre-debounced edges. Three states:
 | Input       | Guard               | Action       | Next State                                    | next_service        |
 | ----------- | ------------------- | ------------ | --------------------------------------------- | ------------------- |
 | Edge::Press | —                   | emit `Press` | Pressed { click_count: count, hold_level: 0 } | `Delay(hold_delay)` |
-| —           | timeout elapsed     | —            | Idle                                          | `Idle`              |
+| —           | timeout elapsed     | emit `Click { count }` | Idle                                   | `Idle`              |
 | —           | timeout not elapsed | —            | (unchanged)                                   | `Delay(remaining)`  |
 
 ## Feature Flags
