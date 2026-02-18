@@ -1,4 +1,4 @@
-use crate::{Config, Event, ServiceTiming, TimeInstant};
+use crate::{Config, Event, ServiceTiming, TimeDuration, TimeInstant};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Edge {
@@ -11,6 +11,7 @@ enum State<I: TimeInstant> {
     Idle,
     Pressed {
         pressed_at: I,
+        next_hold_at: I,
         click_count: u8,
         hold_level: u8,
     },
@@ -38,8 +39,106 @@ impl<I: TimeInstant> StateMachine<I> {
         edge: Option<Edge>,
         now: I,
     ) -> (Option<Event<I::Duration>>, ServiceTiming<I::Duration>) {
-        // TODO: implement transition table
-        let _ = (edge, now);
-        (None, ServiceTiming::Idle)
+        match self.state {
+            State::Idle => match edge {
+                Some(Edge::Press) => {
+                    let next_hold_at = now.checked_add(self.config.hold_delay).unwrap_or(now);
+                    self.state = State::Pressed {
+                        pressed_at: now,
+                        next_hold_at,
+                        click_count: 0,
+                        hold_level: 0,
+                    };
+                    (
+                        Some(Event::Press),
+                        ServiceTiming::Delay(self.config.hold_delay),
+                    )
+                }
+                _ => (None, ServiceTiming::Idle),
+            },
+
+            State::Pressed {
+                pressed_at,
+                next_hold_at,
+                click_count,
+                hold_level,
+            } => match edge {
+                Some(Edge::Release) => {
+                    let duration = now.duration_since(pressed_at);
+                    if hold_level > 0 {
+                        // A hold was emitted — this is not a click.
+                        self.state = State::Idle;
+                        (Some(Event::Release { duration }), ServiceTiming::Idle)
+                    } else {
+                        // Short press — wait to see if more clicks follow.
+                        self.state = State::WaitForMultiClick {
+                            click_count: click_count.saturating_add(1),
+                            released_at: now,
+                        };
+                        (
+                            Some(Event::Release { duration }),
+                            ServiceTiming::Delay(self.config.click_timeout),
+                        )
+                    }
+                }
+                _ => {
+                    // No edge — check if the hold deadline has been reached.
+                    let elapsed = now.duration_since(pressed_at);
+                    let hold_elapsed = next_hold_at.duration_since(pressed_at);
+
+                    if elapsed.as_millis() >= hold_elapsed.as_millis() {
+                        let event = Event::Hold {
+                            clicks_before: click_count,
+                            level: hold_level,
+                        };
+                        let new_next_hold_at = next_hold_at
+                            .checked_add(self.config.hold_interval)
+                            .unwrap_or(next_hold_at);
+                        self.state = State::Pressed {
+                            pressed_at,
+                            next_hold_at: new_next_hold_at,
+                            click_count,
+                            hold_level: hold_level.saturating_add(1),
+                        };
+                        (Some(event), ServiceTiming::Delay(self.config.hold_interval))
+                    } else {
+                        let remaining = hold_elapsed.saturating_sub(elapsed);
+                        (None, ServiceTiming::Delay(remaining))
+                    }
+                }
+            },
+
+            State::WaitForMultiClick {
+                click_count,
+                released_at,
+            } => match edge {
+                Some(Edge::Press) => {
+                    let next_hold_at = now.checked_add(self.config.hold_delay).unwrap_or(now);
+                    self.state = State::Pressed {
+                        pressed_at: now,
+                        next_hold_at,
+                        click_count,
+                        hold_level: 0,
+                    };
+                    (
+                        Some(Event::Press),
+                        ServiceTiming::Delay(self.config.hold_delay),
+                    )
+                }
+                _ => {
+                    let elapsed = now.duration_since(released_at);
+                    if elapsed.as_millis() >= self.config.click_timeout.as_millis() {
+                        self.state = State::Idle;
+                        (
+                            Some(Event::Click { count: click_count }),
+                            ServiceTiming::Idle,
+                        )
+                    } else {
+                        let remaining = self.config.click_timeout.saturating_sub(elapsed);
+                        (None, ServiceTiming::Delay(remaining))
+                    }
+                }
+            },
+        }
     }
 }
