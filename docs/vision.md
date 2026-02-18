@@ -13,8 +13,7 @@ Pure logic — no I/O, no HAL, no interrupts. The button counterpart to
 - **Testable** — unit test with `true`/`false` and fake timestamps, no mocks needed.
 - **Static config** — `&'static Config` stored in flash, compile-time validated via `const fn validate()`.
 - **Minimal footprint** — documented RAM/flash usage, benchmarked on target platforms.
-- **Feature-gated dependencies** — platform integrations (`std`, `embassy`, `defmt`) behind
-  feature flags; all gesture logic always included.
+- **Feature-gated dependencies** — only `defmt` logging is optional; no platform integrations bundled.
 
 ## Time Abstraction
 
@@ -36,8 +35,7 @@ pub trait TimeInstant: Copy {
 }
 ```
 
-Built-in implementations behind feature flags for `std::time::Instant` and
-`embassy_time::Instant`.
+Users implement these traits for their platform's time types.
 
 ## Events
 
@@ -228,11 +226,9 @@ Operates on clean, pre-debounced edges. Three states:
 
 ## Feature Flags
 
-| Feature   | What it enables                             | Dependency   |
-| --------- | ------------------------------------------- | ------------ |
-| `std`     | `TimeInstant` impl for `std::time::Instant` | std          |
-| `embassy` | `TimeInstant` impl for `embassy_time`       | embassy-time |
-| `defmt`   | Structured logging for events and state     | defmt        |
+| Feature | What it enables                         | Dependency |
+| ------- | --------------------------------------- | ---------- |
+| `defmt` | Structured logging for events and state | defmt      |
 
 ## Differentiation from button-driver
 
