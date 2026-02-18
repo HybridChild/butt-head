@@ -1,6 +1,5 @@
 use crate::TimeDuration;
 use crate::config::Config;
-use crate::debouncer::Debouncer;
 use crate::event::Event;
 use crate::service_timing::ServiceTiming;
 use crate::state_machine::{Edge, StateMachine};
@@ -14,9 +13,11 @@ pub struct UpdateResult<D: TimeDuration> {
 }
 
 /// Button input processor.
+///
+/// Expects clean, debounced input. If your button is subject to mechanical
+/// bounce, debounce the signal before passing it to `update()`.
 pub struct ButtHead<I: TimeInstant> {
-    debouncer: Debouncer<I>,
-    prev_debounced: bool,
+    prev_input: bool,
     state_machine: StateMachine<I>,
     active_low: bool,
 }
@@ -24,8 +25,7 @@ pub struct ButtHead<I: TimeInstant> {
 impl<I: TimeInstant> ButtHead<I> {
     pub fn new(config: &Config<I::Duration>) -> Self {
         Self {
-            debouncer: Debouncer::new(config.debounce),
-            prev_debounced: false,
+            prev_input: false,
             state_machine: StateMachine::new(
                 config.hold_delay,
                 config.hold_interval,
@@ -42,24 +42,18 @@ impl<I: TimeInstant> ButtHead<I> {
             raw_input
         };
 
-        let (debounced, debounce_timing) = self.debouncer.update(input, now);
-
-        let edge = if debounced != self.prev_debounced {
-            self.prev_debounced = debounced;
-            Some(if debounced {
-                Edge::Press
-            } else {
-                Edge::Release
-            })
+        let edge = if input != self.prev_input {
+            self.prev_input = input;
+            Some(if input { Edge::Press } else { Edge::Release })
         } else {
             None
         };
 
-        let (event, sm_timing) = self.state_machine.update(edge, now);
+        let (event, next_service) = self.state_machine.update(edge, now);
 
         UpdateResult {
             event,
-            next_service: debounce_timing.min(sm_timing),
+            next_service,
         }
     }
 }

@@ -12,8 +12,6 @@ pub use service_timing::ServiceTiming;
 mod config;
 pub use config::Config;
 
-mod debouncer;
-
 mod state_machine;
 
 mod butt_head;
