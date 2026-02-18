@@ -19,24 +19,20 @@ pub struct UpdateResult<D: TimeDuration> {
 pub struct ButtHead<I: TimeInstant> {
     prev_input: bool,
     state_machine: StateMachine<I>,
-    active_low: bool,
+    config: &'static Config<I::Duration>,
 }
 
 impl<I: TimeInstant> ButtHead<I> {
-    pub fn new(config: &Config<I::Duration>) -> Self {
+    pub fn new(config: &'static Config<I::Duration>) -> Self {
         Self {
             prev_input: false,
-            state_machine: StateMachine::new(
-                config.hold_delay,
-                config.hold_interval,
-                config.click_timeout,
-            ),
-            active_low: config.active_low,
+            state_machine: StateMachine::new(config),
+            config,
         }
     }
 
     pub fn update(&mut self, raw_input: bool, now: I) -> UpdateResult<I::Duration> {
-        let input = if self.active_low {
+        let input = if self.config.active_low {
             !raw_input
         } else {
             raw_input
@@ -51,9 +47,6 @@ impl<I: TimeInstant> ButtHead<I> {
 
         let (event, next_service) = self.state_machine.update(edge, now);
 
-        UpdateResult {
-            event,
-            next_service,
-        }
+        UpdateResult { event, next_service }
     }
 }

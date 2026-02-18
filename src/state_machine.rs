@@ -1,4 +1,4 @@
-use crate::{Event, ServiceTiming, TimeDuration, TimeInstant};
+use crate::{Config, Event, ServiceTiming, TimeInstant};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Edge {
@@ -22,22 +22,14 @@ enum State<I: TimeInstant> {
 
 pub(crate) struct StateMachine<I: TimeInstant> {
     state: State<I>,
-    hold_delay: I::Duration,
-    hold_interval: I::Duration,
-    click_timeout: I::Duration,
+    config: &'static Config<I::Duration>,
 }
 
 impl<I: TimeInstant> StateMachine<I> {
-    pub fn new(
-        hold_delay: I::Duration,
-        hold_interval: I::Duration,
-        click_timeout: I::Duration,
-    ) -> Self {
+    pub fn new(config: &'static Config<I::Duration>) -> Self {
         Self {
             state: State::Idle,
-            hold_delay,
-            hold_interval,
-            click_timeout,
+            config,
         }
     }
 

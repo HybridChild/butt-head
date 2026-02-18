@@ -1,5 +1,5 @@
 /// Abstraction for a duration of time.
-pub trait TimeDuration: Copy + PartialEq {
+pub trait TimeDuration: Copy + PartialEq + 'static {
     const ZERO: Self;
     fn as_millis(&self) -> u64;
     fn from_millis(millis: u64) -> Self;
