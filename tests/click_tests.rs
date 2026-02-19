@@ -28,7 +28,12 @@ fn release_before_hold_delay_emits_release_with_correct_duration() {
 
     let result = button.update(false, TestInstant::ms(100));
 
-    assert_eq!(result.event, Some(Event::Release { duration: TestDuration(100) }));
+    assert_eq!(
+        result.event,
+        Some(Event::Release {
+            duration: TestDuration(100)
+        })
+    );
 }
 
 #[test]
@@ -150,7 +155,10 @@ fn release_returns_click_timeout_timing() {
 
     let result = button.update(false, TestInstant::ms(100));
 
-    assert_eq!(result.next_service, ServiceTiming::Delay(CONFIG.click_timeout));
+    assert_eq!(
+        result.next_service,
+        ServiceTiming::Delay(CONFIG.click_timeout)
+    );
 }
 
 #[test]
@@ -162,7 +170,10 @@ fn remaining_time_decreases_as_time_advances_in_wait_for_multi_click() {
     // 100ms into the 300ms click_timeout → 200ms remaining
     let result = button.update(false, TestInstant::ms(200));
 
-    assert_eq!(result.next_service, ServiceTiming::Delay(CONFIG.click_timeout.saturating_sub(TestDuration(100))));
+    assert_eq!(
+        result.next_service,
+        ServiceTiming::Delay(CONFIG.click_timeout.saturating_sub(TestDuration(100)))
+    );
 }
 
 // --- Active low ---
@@ -184,5 +195,10 @@ fn active_low_treats_high_signal_as_released() {
 
     let result = button.update(true, TestInstant::ms(100)); // release
 
-    assert_eq!(result.event, Some(Event::Release { duration: TestDuration(100) }));
+    assert_eq!(
+        result.event,
+        Some(Event::Release {
+            duration: TestDuration(100)
+        })
+    );
 }

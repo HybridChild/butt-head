@@ -92,7 +92,8 @@ fn main() -> ! {
 
     // SysTick: 1ms interrupts
     let sysclk = rcc.clocks.sysclk().0;
-    cp.SYST.set_clock_source(cortex_m::peripheral::syst::SystClkSource::Core);
+    cp.SYST
+        .set_clock_source(cortex_m::peripheral::syst::SystClkSource::Core);
     cp.SYST.set_reload((sysclk / 1_000) - 1);
     cp.SYST.clear_current();
     cp.SYST.enable_counter();

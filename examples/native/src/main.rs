@@ -6,8 +6,8 @@ use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseButton,
     MouseEventKind,
 };
-use crossterm::terminal;
 use crossterm::execute;
+use crossterm::terminal;
 
 // --- Time wrappers ---
 
@@ -88,7 +88,11 @@ fn run() -> io::Result<()> {
         };
 
         let input = if let Some(d) = timeout {
-            if event::poll(d)? { Some(event::read()?) } else { None }
+            if event::poll(d)? {
+                Some(event::read()?)
+            } else {
+                None
+            }
         } else {
             Some(event::read()?)
         };

@@ -13,7 +13,13 @@ fn hold_fires_at_hold_delay() {
     // Service exactly at hold_delay (500ms)
     let result = button.update(true, TestInstant::ms(500));
 
-    assert_eq!(result.event, Some(Event::Hold { clicks_before: 0, level: 0 }));
+    assert_eq!(
+        result.event,
+        Some(Event::Hold {
+            clicks_before: 0,
+            level: 0
+        })
+    );
 }
 
 #[test]
@@ -34,10 +40,22 @@ fn hold_level_increments_with_each_repeat() {
 
     button.update(true, TestInstant::ms(500)); // level 0
     let result = button.update(true, TestInstant::ms(700)); // level 1
-    assert_eq!(result.event, Some(Event::Hold { clicks_before: 0, level: 1 }));
+    assert_eq!(
+        result.event,
+        Some(Event::Hold {
+            clicks_before: 0,
+            level: 1
+        })
+    );
 
     let result = button.update(true, TestInstant::ms(900)); // level 2
-    assert_eq!(result.event, Some(Event::Hold { clicks_before: 0, level: 2 }));
+    assert_eq!(
+        result.event,
+        Some(Event::Hold {
+            clicks_before: 0,
+            level: 2
+        })
+    );
 }
 
 #[test]
@@ -60,7 +78,12 @@ fn release_after_hold_emits_release_with_correct_duration() {
 
     let result = button.update(false, TestInstant::ms(800));
 
-    assert_eq!(result.event, Some(Event::Release { duration: TestDuration(800) }));
+    assert_eq!(
+        result.event,
+        Some(Event::Release {
+            duration: TestDuration(800)
+        })
+    );
 }
 
 // --- Click-and-hold ---
@@ -77,7 +100,13 @@ fn click_then_hold_sets_clicks_before_to_1() {
     // hold_delay after second press: t=200+500=700
     let result = button.update(true, TestInstant::ms(700));
 
-    assert_eq!(result.event, Some(Event::Hold { clicks_before: 1, level: 0 }));
+    assert_eq!(
+        result.event,
+        Some(Event::Hold {
+            clicks_before: 1,
+            level: 0
+        })
+    );
 }
 
 #[test]
@@ -94,7 +123,13 @@ fn double_click_then_hold_sets_clicks_before_to_2() {
     // hold_delay after third press: t=250+500=750
     let result = button.update(true, TestInstant::ms(750));
 
-    assert_eq!(result.event, Some(Event::Hold { clicks_before: 2, level: 0 }));
+    assert_eq!(
+        result.event,
+        Some(Event::Hold {
+            clicks_before: 2,
+            level: 0
+        })
+    );
 }
 
 #[test]
@@ -121,7 +156,10 @@ fn after_hold_fires_returns_hold_interval_timing() {
 
     let result = button.update(true, TestInstant::ms(500));
 
-    assert_eq!(result.next_service, ServiceTiming::Delay(CONFIG.hold_interval));
+    assert_eq!(
+        result.next_service,
+        ServiceTiming::Delay(CONFIG.hold_interval)
+    );
 }
 
 #[test]
@@ -132,7 +170,10 @@ fn remaining_time_decreases_as_time_advances_while_pressed() {
     // 200ms into the 500ms hold_delay → 300ms remaining
     let result = button.update(true, TestInstant::ms(200));
 
-    assert_eq!(result.next_service, ServiceTiming::Delay(CONFIG.hold_delay.saturating_sub(TestDuration(200))));
+    assert_eq!(
+        result.next_service,
+        ServiceTiming::Delay(CONFIG.hold_delay.saturating_sub(TestDuration(200)))
+    );
 }
 
 #[test]
