@@ -11,6 +11,7 @@ A `no_std` button input processing library for embedded systems. HAL-agnostic: p
 ## Commands
 
 ```sh
+scripts/ci-local         # full CI suite (lint, test, docs, no_std)
 scripts/format.sh        # fmt all subprojects
 scripts/cleanup.sh       # cargo clean all subprojects
 cargo fmt --all

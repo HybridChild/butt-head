@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+# Local CI verification script
+# Run this before pushing to catch errors early
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+step()    { echo -e "${BLUE}▶${NC} $1"; }
+ok()      { echo -e "${GREEN}✓${NC} $1"; }
+warn()    { echo -e "${YELLOW}⚠${NC} $1"; }
+
+echo ""
+echo "========================================="
+echo "  butt-head - Local CI Verification"
+echo "========================================="
+echo ""
+
+# 1. Format
+step "Checking formatting..."
+cargo fmt --all -- --check
+ok "Formatting OK"
+for example in native stm32f0 stm32f0-embassy; do
+    if [ -d "examples/$example" ]; then
+        (cd "examples/$example" && cargo fmt -- --check)
+        ok "Formatting OK ($example example)"
+    fi
+done
+echo ""
+
+# 2. Clippy
+step "Clippy (no features)..."
+cargo clippy --lib --no-default-features -- -D warnings
+ok "Clippy passed (no features)"
+
+step "Clippy (all features)..."
+cargo clippy --lib --all-features -- -D warnings
+ok "Clippy passed (all features)"
+echo ""
+
+# 3. Tests
+step "Running tests..."
+cargo test --no-default-features
+ok "Tests passed"
+echo ""
+
+# 4. Docs
+step "Building docs (all features)..."
+RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
+ok "Docs OK (all features)"
+
+step "Building docs (no features)..."
+RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --no-default-features
+ok "Docs OK (no features)"
+echo ""
+
+# 5. no_std builds
+step "Checking no_std compatibility..."
+
+for target in thumbv6m-none-eabi thumbv7em-none-eabihf; do
+    if rustup target list --installed | grep -q "$target"; then
+        step "  Building for $target..."
+        cargo build --target "$target" --lib --release --no-default-features
+        ok "  no_std OK (no features)"
+        cargo build --target "$target" --lib --release --all-features
+        ok "  no_std OK (all features)"
+    else
+        warn "  $target not installed, skipping"
+        echo "    Install with: rustup target add $target"
+    fi
+done
+echo ""
+
+# 6. Build examples
+if [ -d "examples/native" ]; then
+    step "Building native example..."
+    (cd examples/native && cargo build --release)
+    ok "Native example built"
+    echo ""
+fi
+
+for example in stm32f0 stm32f0-embassy; do
+    if [ -d "examples/$example" ]; then
+        if rustup target list --installed | grep -q "thumbv6m-none-eabi"; then
+            step "Building $example example..."
+            (cd "examples/$example" && cargo build --release)
+            ok "$example example built"
+        else
+            warn "thumbv6m-none-eabi not installed, skipping $example example"
+            echo "    Install with: rustup target add thumbv6m-none-eabi"
+        fi
+        echo ""
+    fi
+done
+
+# 7. Git status
+step "Checking git status..."
+if [ -n "$(git status --porcelain)" ]; then
+    warn "Uncommitted changes:"
+    git status --short
+else
+    ok "No uncommitted changes"
+fi
+echo ""
+
+echo "========================================="
+echo -e "${GREEN}✓ All CI checks passed!${NC}"
+echo "========================================="
+echo ""
