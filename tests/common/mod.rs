@@ -53,6 +53,7 @@ pub static CONFIG: Config<TestDuration> = Config {
     click_timeout: TestDuration(300),
     hold_delay: TestDuration(500),
     hold_interval: TestDuration(200),
+    max_click_count: None,
 };
 
 // --- Helpers ---

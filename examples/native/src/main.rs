@@ -56,6 +56,7 @@ static CONFIG: Config<StdDuration> = Config {
     click_timeout: StdDuration(Duration::from_millis(120)),
     hold_delay: StdDuration(Duration::from_millis(500)),
     hold_interval: StdDuration(Duration::from_millis(300)),
+    max_click_count: None,
 };
 
 // --- Main ---

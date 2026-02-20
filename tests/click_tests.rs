@@ -3,11 +3,30 @@ mod common;
 use butt_head::{ButtHead, Config, Event, ServiceTiming, TimeDuration};
 use common::{CONFIG, TestDuration, TestInstant, new_button};
 
+// --- max_click_count configs ---
+
+static MAX_1_CONFIG: Config<TestDuration> = Config {
+    active_low: false,
+    click_timeout: TestDuration(300),
+    hold_delay: TestDuration(500),
+    hold_interval: TestDuration(200),
+    max_click_count: Some(1),
+};
+
+static MAX_2_CONFIG: Config<TestDuration> = Config {
+    active_low: false,
+    click_timeout: TestDuration(300),
+    hold_delay: TestDuration(500),
+    hold_interval: TestDuration(200),
+    max_click_count: Some(2),
+};
+
 static ACTIVE_LOW_CONFIG: Config<TestDuration> = Config {
     active_low: true,
     click_timeout: TestDuration(300),
     hold_delay: TestDuration(500),
     hold_interval: TestDuration(200),
+    max_click_count: None,
 };
 
 // --- Single click ---
@@ -201,4 +220,70 @@ fn active_low_treats_high_signal_as_released() {
             duration: TestDuration(100)
         })
     );
+}
+
+// --- max_click_count ---
+
+#[test]
+fn max_1_release_returns_immediate_timing() {
+    let mut button = ButtHead::new(&MAX_1_CONFIG);
+    button.update(true, TestInstant::ms(0));
+
+    let result = button.update(false, TestInstant::ms(100));
+
+    assert_eq!(result.next_service, ServiceTiming::Immediate);
+}
+
+#[test]
+fn max_1_click_fires_on_next_call_without_waiting_for_timeout() {
+    let mut button = ButtHead::new(&MAX_1_CONFIG);
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100)); // release → Immediate
+
+    // Call back at t=101 — well before the 300ms click_timeout.
+    let result = button.update(false, TestInstant::ms(101));
+
+    assert_eq!(result.event, Some(Event::Click { count: 1 }));
+    assert_eq!(result.next_service, ServiceTiming::Idle);
+}
+
+#[test]
+fn max_2_first_release_still_waits_for_timeout_or_second_click() {
+    let mut button = ButtHead::new(&MAX_2_CONFIG);
+    button.update(true, TestInstant::ms(0));
+
+    // First release: count is now 1, max is 2 — not at cap yet.
+    let result = button.update(false, TestInstant::ms(100));
+
+    assert_eq!(result.next_service, ServiceTiming::Delay(TestDuration(300)));
+}
+
+#[test]
+fn max_2_second_release_fires_click_immediately() {
+    let mut button = ButtHead::new(&MAX_2_CONFIG);
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100)); // count = 1
+    button.update(true, TestInstant::ms(200));
+
+    // Second release: count reaches 2 == max → Immediate.
+    let result = button.update(false, TestInstant::ms(300));
+
+    assert_eq!(result.next_service, ServiceTiming::Immediate);
+
+    // Next call fires Click { count: 2 } without waiting for timeout.
+    let result = button.update(false, TestInstant::ms(301));
+
+    assert_eq!(result.event, Some(Event::Click { count: 2 }));
+}
+
+#[test]
+fn max_2_single_click_still_fires_after_timeout() {
+    let mut button = ButtHead::new(&MAX_2_CONFIG);
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100)); // count = 1
+
+    // No second click — timeout expires normally.
+    let result = button.update(false, TestInstant::ms(400));
+
+    assert_eq!(result.event, Some(Event::Click { count: 1 }));
 }

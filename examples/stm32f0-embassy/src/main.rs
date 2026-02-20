@@ -63,6 +63,7 @@ static CONFIG: Config<EmbassyDuration> = Config {
     click_timeout: EmbassyDuration(Duration::from_millis(120)),
     hold_delay: EmbassyDuration(Duration::from_millis(500)),
     hold_interval: EmbassyDuration(Duration::from_millis(300)),
+    max_click_count: None,
 };
 
 // --- Main ---

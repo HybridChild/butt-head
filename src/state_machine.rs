@@ -70,15 +70,23 @@ impl<I: TimeInstant> StateMachine<I> {
                         self.state = State::Idle;
                         (Some(Event::Release { duration }), ServiceTiming::Idle)
                     } else {
-                        // Short press — wait to see if more clicks follow.
+                        let new_count = click_count.saturating_add(1);
+                        let at_max = self
+                            .config
+                            .max_click_count
+                            .is_some_and(|max| new_count >= max);
                         self.state = State::WaitForMultiClick {
-                            click_count: click_count.saturating_add(1),
+                            click_count: new_count,
                             released_at: now,
                         };
-                        (
-                            Some(Event::Release { duration }),
-                            ServiceTiming::Delay(self.config.click_timeout),
-                        )
+                        // If we've hit the cap, call back immediately so the
+                        // Click event is emitted without waiting for the timeout.
+                        let timing = if at_max {
+                            ServiceTiming::Immediate
+                        } else {
+                            ServiceTiming::Delay(self.config.click_timeout)
+                        };
+                        (Some(Event::Release { duration }), timing)
                     }
                 }
                 _ => {
@@ -126,6 +134,19 @@ impl<I: TimeInstant> StateMachine<I> {
                     )
                 }
                 _ => {
+                    // Fire immediately if we've hit max_click_count.
+                    let at_max = self
+                        .config
+                        .max_click_count
+                        .is_some_and(|max| click_count >= max);
+                    if at_max {
+                        self.state = State::Idle;
+                        return (
+                            Some(Event::Click { count: click_count }),
+                            ServiceTiming::Idle,
+                        );
+                    }
+
                     let elapsed = now.duration_since(released_at);
                     if elapsed.as_millis() >= self.config.click_timeout.as_millis() {
                         self.state = State::Idle;
