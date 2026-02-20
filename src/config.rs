@@ -3,7 +3,7 @@ use crate::TimeDuration;
 /// Configuration for a `ButtHead` instance.
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config<D: TimeDuration> {
-    /// Invert input polarity (true = pin low means pressed).
+    /// Input polarity (true = pin low means pressed).
     pub active_low: bool,
 
     /// Maximum gap between clicks to count as multi-click.
