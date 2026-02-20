@@ -5,3 +5,6 @@
 Cargo.lock
 /target
 /examples/*/target/
+
+/tmp
+/notes
