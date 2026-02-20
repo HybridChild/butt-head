@@ -9,7 +9,9 @@ use crate::time::TimeInstant;
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UpdateResult<D: TimeDuration> {
+    /// The event produced by this update, if any.
     pub event: Option<Event<D>>,
+    /// When to call `update()` again. See [`ServiceTiming`].
     pub next_service: ServiceTiming<D>,
 }
 
@@ -24,6 +26,7 @@ pub struct ButtHead<I: TimeInstant> {
 }
 
 impl<I: TimeInstant> ButtHead<I> {
+    /// Creates a new `ButtHead` instance with the given configuration.
     pub fn new(config: &'static Config<I::Duration>) -> Self {
         Self {
             prev_input: false,
@@ -32,6 +35,11 @@ impl<I: TimeInstant> ButtHead<I> {
         }
     }
 
+    /// Advances the state machine.
+    ///
+    /// `is_pressed` is the raw pin state (before active-low inversion).
+    /// `now` is the current timestamp. Returns the resulting event and the
+    /// recommended time for the next call.
     pub fn update(&mut self, is_pressed: bool, now: I) -> UpdateResult<I::Duration> {
         let input = if self.config.active_low {
             !is_pressed

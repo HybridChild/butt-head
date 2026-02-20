@@ -76,6 +76,7 @@ static CONFIG: Config<HalDuration> = Config {
     click_timeout: HalDuration(120),
     hold_delay: HalDuration(500),
     hold_interval: HalDuration(300),
+    max_click_count: None,
 };
 
 // --- Entry ---
