@@ -35,6 +35,19 @@ impl<I: TimeInstant> ButtHead<I> {
         }
     }
 
+    /// Returns `true` if the button is currently physically pressed.
+    pub fn is_pressed(&self) -> bool {
+        self.prev_input
+    }
+
+    /// Returns how long the button has been continuously held, or `None` if it
+    /// is not currently pressed.
+    pub fn pressed_duration(&self, now: I) -> Option<I::Duration> {
+        self.state_machine
+            .pressed_at()
+            .map(|at| now.duration_since(at))
+    }
+
     /// Advances the state machine.
     ///
     /// `is_pressed` is the raw pin state (before active-low inversion).

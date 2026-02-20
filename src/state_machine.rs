@@ -34,6 +34,15 @@ impl<I: TimeInstant> StateMachine<I> {
         }
     }
 
+    /// Returns the instant the button was pressed if currently in the `Pressed`
+    /// state, or `None` otherwise.
+    pub fn pressed_at(&self) -> Option<I> {
+        match self.state {
+            State::Pressed { pressed_at, .. } => Some(pressed_at),
+            _ => None,
+        }
+    }
+
     pub fn update(
         &mut self,
         edge: Option<Edge>,
