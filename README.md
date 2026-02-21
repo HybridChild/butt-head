@@ -74,7 +74,7 @@ pub trait TimeInstant: Copy {
 }
 ```
 
-See [`examples/`](examples/) for complete integrations with `std::time`, STM32 SysTick, and Embassy.
+See [`examples/`](examples/README.md) for complete integrations with `std::time`, STM32 SysTick, and Embassy.
 
 ## Configuration
 
