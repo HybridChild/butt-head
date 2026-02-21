@@ -1,10 +1,13 @@
 # butt-head
 
+[![Platform](https://img.shields.io/badge/platform-no_std-blue)](https://github.com/HybridChild/butt-head)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-green)](https://github.com/HybridChild/butt-head#license)
+
 A `no_std` Rust library for processing button inputs in embedded systems. Transforms clean boolean pin states into button gesture events through a configurable state machine. Pure logic — no I/O, no HAL, no interrupts. The button counterpart to [pot-head](https://crates.io/crates/pot-head).
 
 ## Scope
 
-**butt-head** handles gesture recognition: click counting, hold detection, multi-click sequences, and scheduling hints. It operates on clean boolean pin states and does **not** perform debouncing. Debounce is a hardware-level concern that depends on sampling rate and electrical characteristics — it belongs in your HAL or input driver, before the state reaches this library.
+**butt-head** handles gesture recognition: single and multi-click detection, hold detection, and multi-click sequences. It operates on clean boolean pin states and does **not** perform debouncing. Debounce is a hardware-level concern that depends on sampling rate and electrical characteristics — it belongs in your HAL or input driver, before the state reaches this library.
 
 ## What You Get
 
@@ -30,6 +33,30 @@ Match on exactly the gestures you care about and ignore the rest. All gesture se
 - A long press fires `Hold` events — never a `Click`.
 - Click-then-hold is distinguished from plain hold via `clicks_before`.
 
+For multi-button combos, `is_pressed()` and `pressed_duration(now)` let you query button state directly without waiting for an event.
+
+## Configuration
+
+```rust
+static CONFIG: Config<MyDuration> = Config {
+    active_low: true,                              // pin low = pressed
+    click_timeout: MyDuration::from_millis(300),   // multi-click window
+    hold_delay: MyDuration::from_millis(500),      // time until first Hold fires
+    hold_interval: MyDuration::from_millis(200),   // time between subsequent Holds
+    max_click_count: None,                         // None = always wait for click_timeout
+};
+
+let mut button = ButtHead::new(&CONFIG);
+```
+
+Config lives as a `&'static` reference — zero runtime overhead, sits in flash on embedded targets.
+
+`max_click_count` lets you short-circuit the `click_timeout` wait:
+
+- `None` — always wait for `click_timeout` to expire before emitting (default).
+- `Some(1)` — emit `Click` on every release immediately, with no timeout wait.
+- `Some(n)` — emit immediately once the n-th click in a sequence lands.
+
 ## Events
 
 | Event | When it fires |
@@ -45,7 +72,7 @@ Every call to `update()` returns a `ServiceTiming` hint telling you exactly when
 
 ```rust
 match result.next_service {
-    ServiceTiming::Delay(d) => timer.set_alarm(d),  // timer-driven wakeup
+    ServiceTiming::Delay(d) => timer.set_alarm(d),   // timer-driven wakeup
     ServiceTiming::Idle     => wait_for_interrupt(), // sleep until pin changes
     ServiceTiming::Immediate => {}                   // call again immediately
 }
@@ -55,47 +82,7 @@ During idle your firmware sleeps until a pin interrupt fires. During a gesture t
 
 ## Works Everywhere
 
-**butt-head** is HAL-agnostic. Wire it up to your platform's time type by implementing two small traits:
-
-```rust
-pub trait TimeDuration: Copy + PartialEq + 'static {
-    const ZERO: Self;
-    fn as_millis(&self) -> u64;
-    fn from_millis(millis: u64) -> Self;
-    fn saturating_sub(self, other: Self) -> Self;
-}
-
-pub trait TimeInstant: Copy {
-    type Duration: TimeDuration;
-    fn duration_since(&self, earlier: Self) -> Self::Duration;
-    fn checked_add(self, duration: Self::Duration) -> Option<Self>;
-    fn checked_sub(self, duration: Self::Duration) -> Option<Self>;
-}
-```
-
-See [`examples/`](examples/README.md) for complete integrations with `std::time`, STM32 SysTick, and Embassy.
-
-## Configuration
-
-```rust
-static CONFIG: Config<MyDuration> = Config {
-    active_low: true,                              // pin low = pressed
-    click_timeout: MyDuration::from_millis(300),   // multi-click window
-    hold_delay: MyDuration::from_millis(500),      // time until first Hold fires
-    hold_interval: MyDuration::from_millis(200),   // time between subsequent Holds
-    max_click_count: None,                         // wait for click_timeout (default)
-};
-
-let mut button = ButtHead::new(&CONFIG);
-```
-
-Config lives as a `&'static` reference — zero runtime overhead, sits in flash on embedded targets.
-
-`max_click_count` controls when a `Click` event is emitted relative to the `click_timeout`:
-
-- `None` — always wait for `click_timeout` to expire before emitting (default).
-- `Some(1)` — emit `Click` on every release immediately, with no timeout wait.
-- `Some(n)` — emit immediately once the n-th click in a sequence lands.
+**butt-head** is HAL-agnostic. Integrate it by implementing two small traits — `TimeDuration` and `TimeInstant` — for your platform's time types. See [`examples/`](examples/README.md) for complete integrations with `std::time`, STM32 SysTick, and Embassy.
 
 ## Feature Flags
 
