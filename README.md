@@ -7,6 +7,10 @@ A `no_std` Rust library for processing button inputs in embedded systems. Transf
 butt-head = "0.1"
 ```
 
+## Scope
+
+butt-head handles gesture recognition: click counting, hold detection, multi-click sequences, and scheduling hints. It operates on clean boolean pin states and does **not** perform debouncing. Debounce is a hardware-level concern that depends on sampling rate and electrical characteristics — it belongs in your HAL or input driver, before the state reaches this library.
+
 ## What You Get
 
 Feed in a pin state and a timestamp. Get back a structured event and a hint for when to call again.
