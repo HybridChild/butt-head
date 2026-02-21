@@ -3,18 +3,19 @@
 
 use defmt::info;
 use embassy_executor::Spawner;
-use embassy_stm32::exti::ExtiInput;
+use embassy_stm32::exti::{self, ExtiInput};
 use embassy_stm32::gpio::{Level, Output, Pull, Speed};
+use embassy_stm32::{bind_interrupts, interrupt};
 use embassy_time::{Duration, Instant, with_timeout};
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(struct Irqs {
+    EXTI4_15 => exti::InterruptHandler<interrupt::typelevel::EXTI4_15>;
+});
 
 use butt_head::{ButtHead, Config, Event, ServiceTiming, TimeDuration, TimeInstant};
 
 // --- Time wrappers ---
-//
-// Examples compile as a separate crate, so the orphan rule prevents implementing
-// foreign traits (TimeDuration, TimeInstant) for foreign types (embassy_time::*).
-// Newtype wrappers around the embassy_time types sidestep this.
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, defmt::Format)]
 struct EmbassyDuration(Duration);
@@ -79,7 +80,7 @@ async fn main(_spawner: Spawner) {
 
     // PC13 — user button (active low, internal pull-up).
     // ExtiInput lets us sleep until a pin edge rather than polling.
-    let mut button = ExtiInput::new(p.PC13, p.EXTI13, Pull::Up);
+    let mut button = ExtiInput::new(p.PC13, p.EXTI13, Pull::Up, Irqs);
 
     let mut butt_head = ButtHead::<EmbassyInstant>::new(&CONFIG);
 

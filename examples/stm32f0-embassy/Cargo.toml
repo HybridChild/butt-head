@@ -13,7 +13,7 @@ panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
 embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "defmt"] }
 embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
-embassy-stm32 = { version = "0.4.0", features = ["stm32f072rb", "time-driver-any", "exti", "memory-x", "defmt"] }
+embassy-stm32 = { version = "0.5.0", features = ["stm32f072rb", "time-driver-any", "exti", "memory-x", "defmt"] }
 
 [profile.dev]
 opt-level = "z"
