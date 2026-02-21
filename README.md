@@ -2,14 +2,9 @@
 
 A `no_std` Rust library for processing button inputs in embedded systems. Transforms clean boolean pin states into button gesture events through a configurable state machine. Pure logic — no I/O, no HAL, no interrupts. The button counterpart to [pot-head](https://crates.io/crates/pot-head).
 
-```toml
-[dependencies]
-butt-head = "0.1"
-```
-
 ## Scope
 
-butt-head handles gesture recognition: click counting, hold detection, multi-click sequences, and scheduling hints. It operates on clean boolean pin states and does **not** perform debouncing. Debounce is a hardware-level concern that depends on sampling rate and electrical characteristics — it belongs in your HAL or input driver, before the state reaches this library.
+**butt-head** handles gesture recognition: click counting, hold detection, multi-click sequences, and scheduling hints. It operates on clean boolean pin states and does **not** perform debouncing. Debounce is a hardware-level concern that depends on sampling rate and electrical characteristics — it belongs in your HAL or input driver, before the state reaches this library.
 
 ## What You Get
 
@@ -22,9 +17,9 @@ match result.event {
     Some(Event::Click { count: 1 })                   => single_click(),
     Some(Event::Click { count: 2 })                   => double_click(),
     Some(Event::Hold { clicks_before: 0, level: 0 })  => hold_started(),
-    Some(Event::Hold { clicks_before: 1, .. })         => click_then_hold(),
-    Some(Event::Press)                                 => led_on(),
-    Some(Event::Release { duration })                  => led_off(),
+    Some(Event::Hold { clicks_before: 1, .. })        => click_then_hold(),
+    Some(Event::Press)                                => led_on(),
+    Some(Event::Release { duration })                 => led_off(),
     _ => {}
 }
 ```
@@ -41,7 +36,7 @@ Match on exactly the gestures you care about and ignore the rest. All gesture se
 | ----- | ------------- |
 | `Press` | Immediately on every press edge |
 | `Release { duration }` | Immediately on every release edge |
-| `Click { count }` | After `click_timeout` with no further press; `count` reflects multi-clicks |
+| `Click { count }` | After `click_timeout` with no further press, or immediately when `max_click_count` is reached; `count` reflects multi-clicks |
 | `Hold { clicks_before, level }` | Repeatedly while held; `level` increments on each repeat |
 
 ## Power-Efficient Scheduling
@@ -60,7 +55,7 @@ During idle your firmware sleeps until a pin interrupt fires. During a gesture t
 
 ## Works Everywhere
 
-butt-head is HAL-agnostic. Wire it up to your platform's time type by implementing two small traits:
+**butt-head** is HAL-agnostic. Wire it up to your platform's time type by implementing two small traits:
 
 ```rust
 pub trait TimeDuration: Copy + PartialEq + 'static {
@@ -88,12 +83,19 @@ static CONFIG: Config<MyDuration> = Config {
     click_timeout: MyDuration::from_millis(300),   // multi-click window
     hold_delay: MyDuration::from_millis(500),      // time until first Hold fires
     hold_interval: MyDuration::from_millis(200),   // time between subsequent Holds
+    max_click_count: None,                         // wait for click_timeout (default)
 };
 
 let mut button = ButtHead::new(&CONFIG);
 ```
 
 Config lives as a `&'static` reference — zero runtime overhead, sits in flash on embedded targets.
+
+`max_click_count` controls when a `Click` event is emitted relative to the `click_timeout`:
+
+- `None` — always wait for `click_timeout` to expire before emitting (default).
+- `Some(1)` — emit `Click` on every release immediately, with no timeout wait.
+- `Some(n)` — emit immediately once the n-th click in a sequence lands.
 
 ## Feature Flags
 
