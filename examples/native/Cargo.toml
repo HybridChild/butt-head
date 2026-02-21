@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 butt-head = { path = "../.." }
-crossterm = "0.28"
+crossterm = "0.29"
