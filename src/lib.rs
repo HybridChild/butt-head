@@ -1,3 +1,9 @@
+//! `no_std` button input processing for embedded systems.
+//!
+//! Transforms clean boolean pin states into gesture events — clicks, multi-clicks,
+//! and holds — through a configurable state machine. Pure logic: no I/O, no HAL,
+//! no interrupts required.
+
 #![no_std]
 
 mod time;
