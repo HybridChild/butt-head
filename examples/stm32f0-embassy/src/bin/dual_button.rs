@@ -21,7 +21,7 @@ use embassy_stm32::gpio::Pull;
 use embassy_stm32::{bind_interrupts, interrupt};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
-use embassy_time::{Duration, Instant, with_timeout};
+use embassy_time::{Duration, Instant, Timer, with_timeout};
 use {defmt_rtt as _, panic_probe as _};
 
 use butt_head::{ButtHead, Config, Event, ServiceTiming, TimeDuration, TimeInstant};
@@ -107,6 +107,10 @@ static COMBINED: AtomicBool = AtomicBool::new(false);
 // Two presses within this window are treated as simultaneous.
 const COMBO_WINDOW_TICKS: u32 = Duration::from_millis(50).as_ticks() as u32;
 
+// Settling time for button B (external, no hardware debounce).
+// After any edge the task sleeps this long before reading the pin again.
+const DEBOUNCE_B: Duration = Duration::from_millis(10);
+
 // ---------------------------------------------------------------------------
 // Button config
 // ---------------------------------------------------------------------------
@@ -139,7 +143,7 @@ async fn button_a_task(mut button: ExtiInput<'static>) {
     let mut bh: ButtHead<EmbassyInstant> = ButtHead::new(&BUTTON_CONFIG);
 
     loop {
-        let result = bh.update(button.is_low(), EmbassyInstant(Instant::now()));
+        let result = bh.update(button.is_high(), EmbassyInstant(Instant::now()));
 
         match result.event {
             Some(Event::Press { at }) => {
@@ -190,7 +194,7 @@ async fn button_b_task(mut button: ExtiInput<'static>) {
     let mut bh: ButtHead<EmbassyInstant> = ButtHead::new(&BUTTON_CONFIG);
 
     loop {
-        let result = bh.update(button.is_low(), EmbassyInstant(Instant::now()));
+        let result = bh.update(button.is_high(), EmbassyInstant(Instant::now()));
 
         match result.event {
             Some(Event::Press { at }) => {
@@ -222,11 +226,19 @@ async fn button_b_task(mut button: ExtiInput<'static>) {
             None => {}
         }
 
+        // After an edge wakes the task, wait for the pin to settle before the
+        // next update() reads it.  Timeouts (hold intervals etc.) do not need
+        // the debounce delay because no edge occurred.
         match result.next_service {
             ServiceTiming::Immediate => {}
-            ServiceTiming::Idle => button.wait_for_any_edge().await,
+            ServiceTiming::Idle => {
+                button.wait_for_any_edge().await;
+                Timer::after(DEBOUNCE_B).await;
+            }
             ServiceTiming::Delay(d) => {
-                let _ = with_timeout(d.0, button.wait_for_any_edge()).await;
+                if with_timeout(d.0, button.wait_for_any_edge()).await.is_ok() {
+                    Timer::after(DEBOUNCE_B).await;
+                }
             }
         }
     }

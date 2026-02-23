@@ -60,7 +60,7 @@ impl TimeInstant for EmbassyInstant {
 // --- Config ---
 
 static CONFIG: Config<EmbassyDuration> = Config {
-    active_low: false,
+    active_low: true,
     click_timeout: EmbassyDuration(Duration::from_millis(120)),
     hold_delay: EmbassyDuration(Duration::from_millis(500)),
     hold_interval: EmbassyDuration(Duration::from_millis(300)),
@@ -87,9 +87,7 @@ async fn main(_spawner: Spawner) {
     info!("Ready — press the user button (PC13)");
 
     loop {
-        // Button is active low: is_low() == true when physically pressed.
-        let is_pressed = button.is_low();
-        let result = butt_head.update(is_pressed, EmbassyInstant(Instant::now()));
+        let result = butt_head.update(button.is_high(), EmbassyInstant(Instant::now()));
 
         if let Some(event) = result.event {
             info!("{:?}", event);
