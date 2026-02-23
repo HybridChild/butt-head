@@ -33,7 +33,14 @@ Match on exactly the gestures you care about and ignore the rest. All gesture se
 - A long press fires `Hold` events — never a `Click`.
 - Click-then-hold is distinguished from plain hold via `clicks_before`.
 
-For multi-button combos, `is_pressed()` and `pressed_duration(now)` let you query button state directly without waiting for an event.
+For multi-button combos, the library provides a set of coordination primitives:
+
+- `Event::Press { at }` carries the press timestamp, letting you compare press times across buttons to detect simultaneous presses.
+- `Event::Release { click_follows, .. }` tells you whether a `Click` event will follow, so you can decide whether to suppress it (e.g. when the release was part of a combo).
+- `cancel_pending_click()` cancels the pending `Click` when called from a `Release { click_follows: true }` handler — transitions the state machine back to `Idle` with no click emitted.
+- `is_pressed()` and `pressed_duration(now)` let you query button state directly at any time without waiting for an event.
+
+See [`examples/stm32f0-embassy`](examples/stm32f0-embassy/) (`dual_button` binary) for a complete two-button coordination example using these primitives.
 
 ## Configuration
 
@@ -61,8 +68,8 @@ Config lives as a `&'static` reference — zero runtime overhead, sits in flash 
 
 | Event | When it fires |
 | ----- | ------------- |
-| `Press` | Immediately on every press edge |
-| `Release { duration }` | Immediately on every release edge |
+| `Press { at }` | Immediately on every press edge; `at` is the timestamp of the press |
+| `Release { duration, click_follows }` | Immediately on every release edge; `click_follows` is `true` when a `Click` event will follow (i.e. no hold was emitted), `false` on a hold-release |
 | `Click { count }` | After `click_timeout` with no further press, or immediately when `max_click_count` is reached; `count` reflects multi-clicks |
 | `Hold { clicks_before, level }` | Repeatedly while held; `level` increments on each repeat |
 
@@ -96,7 +103,7 @@ During idle your firmware sleeps until a pin interrupt fires. During a gesture t
 | ------- | ----------- |
 | [`examples/native`](examples/native) | Desktop demo using `std::time` and `crossterm` |
 | [`examples/stm32f0`](examples/stm32f0) | Bare-metal STM32F0 with SysTick timer |
-| [`examples/stm32f0-embassy`](examples/stm32f0-embassy) | STM32F0 with Embassy async/await |
+| [`examples/stm32f0-embassy`](examples/stm32f0-embassy) | STM32F0 with Embassy async/await (`single_button` and `dual_button` binaries) |
 
 ## License
 
