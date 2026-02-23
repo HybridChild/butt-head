@@ -32,11 +32,32 @@ cargo build --release
 
 ## [`stm32f0-embassy`](stm32f0-embassy/)
 
-Same hardware as above, but using [Embassy](https://embassy.dev/) for async scheduling. `ExtiInput` replaces SysTick polling — the task sleeps until the next button edge or ButtHead deadline, whichever comes first, via `with_timeout`.
+Same hardware as above, but using [Embassy](https://embassy.dev/) for async scheduling. `ExtiInput` replaces SysTick polling — each task sleeps until the next button edge or ButtHead deadline, whichever comes first, via `with_timeout`.
 
 Demonstrates power-efficient scheduling with `ServiceTiming`: no busy-wait, no timer interrupts while idle.
 
+Two binaries are provided:
+
+### `single_button`
+
+Single button on PC13 (on-board user button). Direct port of the bare-metal example to async Embassy.
+
 ```sh
 cd examples/stm32f0-embassy/
-cargo build --release
+cargo run --bin single_button --release
+```
+
+### `dual_button`
+
+Two buttons coordinated across two independent tasks. Presses within 50 ms of each other are treated as a simultaneous combo, emitting `ButtonBothClick` / `ButtonBothHold` instead of the individual events.
+
+**Wiring for button B:**
+
+Connect a momentary push-button between **PA0** (Arduino header A0) and **GND**. The internal pull-up is enabled in firmware, so no external resistor is needed.
+
+Button A (PC13) is the on-board user button — no extra wiring required.
+
+```sh
+cd examples/stm32f0-embassy/
+cargo run --bin dual_button --release
 ```
