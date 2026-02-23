@@ -12,6 +12,7 @@ defmt-rtt = "1.1.0"
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
 embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "defmt"] }
+embassy-sync = { version = "0.7.0", features = ["defmt"] }
 embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime", "tick-hz-32_768"] }
 embassy-stm32 = { version = "0.5.0", features = ["stm32f072rb", "time-driver-any", "exti", "memory-x", "defmt"] }
 
