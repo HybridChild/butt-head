@@ -30,7 +30,7 @@ impl TimeDuration for StdDuration {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 struct StdInstant(Instant);
 
 impl TimeInstant for StdInstant {

@@ -49,7 +49,7 @@ impl TimeDuration for HalDuration {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 struct HalInstant(u32);
 
 impl TimeInstant for HalInstant {
