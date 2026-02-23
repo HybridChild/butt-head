@@ -1,5 +1,10 @@
 use crate::{Config, Event, ServiceTiming, TimeDuration, TimeInstant};
 
+type UpdateResult<I> = (
+    Option<Event<<I as TimeInstant>::Duration, I>>,
+    ServiceTiming<<I as TimeInstant>::Duration>,
+);
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Edge {
     Press,
@@ -59,11 +64,7 @@ impl<I: TimeInstant> StateMachine<I> {
         }
     }
 
-    pub fn update(
-        &mut self,
-        edge: Option<Edge>,
-        now: I,
-    ) -> (Option<Event<I::Duration, I>>, ServiceTiming<I::Duration>) {
+    pub fn update(&mut self, edge: Option<Edge>, now: I) -> UpdateResult<I> {
         match self.state {
             State::Idle => match edge {
                 Some(Edge::Press) => {
