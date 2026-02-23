@@ -95,7 +95,7 @@ async fn main(_spawner: Spawner) {
             info!("{:?}", event);
 
             match event {
-                Event::Press => led.set_high(),
+                Event::Press { .. } => led.set_high(),
                 Event::Release { .. } => led.set_low(),
                 _ => {}
             }

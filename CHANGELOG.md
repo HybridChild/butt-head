@@ -6,6 +6,14 @@
 
 - `ButtHead::press_instant()` — returns the `TimeInstant` at which the button was last pressed, or `None` if not currently pressed; enables multi-button combo detection
 - `Event::Release::click_follows: bool` — `true` when a `Click` event will follow (click gesture), `false` when it ends a hold gesture
+- `ButtHead::cancel_pending_click()` — cancels the pending `Click` event when the state machine is in `WaitForMultiClick`, transitioning back to `Idle`; call from an `Event::Release { click_follows: true }` handler to suppress a click that was part of a combo gesture
+- `Event::Press { at: I }` — the press timestamp is now carried directly in the event, avoiding the need to call `press_instant()` immediately after handling a `Press` event
+
+### Changed
+
+- `Event<D>` is now `Event<D, I>` — the `Press` variant carries the press instant, so `I` is part of the event type; match arms that previously used `Event::Press` must now use `Event::Press { .. }` or `Event::Press { at }`
+- `UpdateResult<D>` is now `UpdateResult<D, I>` to match the updated `Event` type
+- `TimeInstant` now requires `PartialEq`
 
 ## [0.1.0] - 2026-02-21
 

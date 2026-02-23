@@ -122,7 +122,7 @@ fn main() -> ! {
             rprintln!("{:?}", event);
 
             match event {
-                Event::Press => led.set_high().ok().unwrap(),
+                Event::Press { .. } => led.set_high().ok().unwrap(),
                 Event::Release { .. } => led.set_low().ok().unwrap(),
                 _ => {}
             }
