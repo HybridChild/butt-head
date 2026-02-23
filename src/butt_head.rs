@@ -8,9 +8,9 @@ use crate::time::TimeInstant;
 /// The result of a single `update()` call.
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct UpdateResult<D: TimeDuration> {
+pub struct UpdateResult<D: TimeDuration, I: TimeInstant<Duration = D>> {
     /// The event produced by this update, if any.
-    pub event: Option<Event<D>>,
+    pub event: Option<Event<D, I>>,
     /// When to call `update()` again. See [`ServiceTiming`].
     pub next_service: ServiceTiming<D>,
 }
@@ -54,12 +54,24 @@ impl<I: TimeInstant> ButtHead<I> {
             .map(|at| now.duration_since(at))
     }
 
+    /// Cancels the pending `Click` event when the state machine is in
+    /// `WaitForMultiClick`. Returns `true` if cancelled, `false` if the state
+    /// machine was not waiting for a click (nothing to cancel).
+    ///
+    /// Call this from an `Event::Release { click_follows: true, .. }` handler
+    /// to suppress the upcoming `Click` (e.g. when the release was part of a
+    /// multi-button combo gesture). The state machine returns to `Idle` and no
+    /// `Click` event will fire.
+    pub fn cancel_pending_click(&mut self) -> bool {
+        self.state_machine.cancel_pending_click()
+    }
+
     /// Advances the state machine.
     ///
     /// `is_pressed` is the raw pin state (before active-low inversion).
     /// `now` is the current timestamp. Returns the resulting event and the
     /// recommended time for the next call.
-    pub fn update(&mut self, is_pressed: bool, now: I) -> UpdateResult<I::Duration> {
+    pub fn update(&mut self, is_pressed: bool, now: I) -> UpdateResult<I::Duration, I> {
         let input = if self.config.active_low {
             !is_pressed
         } else {

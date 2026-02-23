@@ -3,6 +3,48 @@ mod common;
 use butt_head::{ButtHead, Config, Event, ServiceTiming, TimeDuration};
 use common::{CONFIG, TestDuration, TestInstant, new_button};
 
+// --- cancel_pending_click ---
+
+#[test]
+fn cancel_pending_click_suppresses_click_after_release() {
+    let mut button = ButtHead::new(&MAX_1_CONFIG);
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100)); // Release → WaitForMultiClick, Immediate
+
+    let cancelled = button.cancel_pending_click();
+
+    assert!(cancelled);
+    // Next update should return None, not Click
+    let result = button.update(false, TestInstant::ms(101));
+    assert_eq!(result.event, None);
+    assert_eq!(result.next_service, ServiceTiming::Idle);
+}
+
+#[test]
+fn cancel_pending_click_returns_false_when_not_waiting() {
+    let mut button = new_button();
+    // Not yet pressed — nothing to cancel
+    assert!(!button.cancel_pending_click());
+
+    button.update(true, TestInstant::ms(0)); // Pressed state
+    assert!(!button.cancel_pending_click()); // Still pressed, not WaitForMultiClick
+}
+
+#[test]
+fn cancel_pending_click_allows_fresh_click_after_cancellation() {
+    let mut button = ButtHead::new(&MAX_1_CONFIG);
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100));
+    button.cancel_pending_click();
+
+    // New press-release cycle should work normally
+    button.update(true, TestInstant::ms(200));
+    button.update(false, TestInstant::ms(300));
+    let result = button.update(false, TestInstant::ms(301));
+
+    assert_eq!(result.event, Some(Event::Click { count: 1 }));
+}
+
 // --- max_click_count configs ---
 
 static MAX_1_CONFIG: Config<TestDuration> = Config {
@@ -37,7 +79,12 @@ fn press_emits_press_event() {
 
     let result = button.update(true, TestInstant::ms(0));
 
-    assert_eq!(result.event, Some(Event::Press));
+    assert_eq!(
+        result.event,
+        Some(Event::Press {
+            at: TestInstant::ms(0)
+        })
+    );
 }
 
 #[test]
@@ -205,7 +252,12 @@ fn active_low_treats_low_signal_as_pressed() {
     // With active_low, false = pressed
     let result = button.update(false, TestInstant::ms(0));
 
-    assert_eq!(result.event, Some(Event::Press));
+    assert_eq!(
+        result.event,
+        Some(Event::Press {
+            at: TestInstant::ms(0)
+        })
+    );
 }
 
 #[test]

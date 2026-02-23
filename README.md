@@ -21,7 +21,7 @@ match result.event {
     Some(Event::Click { count: 2 })                   => double_click(),
     Some(Event::Hold { clicks_before: 0, level: 0 })  => hold_started(),
     Some(Event::Hold { clicks_before: 1, .. })        => click_then_hold(),
-    Some(Event::Press)                                => led_on(),
+    Some(Event::Press { .. })                         => led_on(),
     Some(Event::Release { duration, .. })             => led_off(),
     _ => {}
 }

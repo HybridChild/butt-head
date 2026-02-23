@@ -43,11 +43,27 @@ impl<I: TimeInstant> StateMachine<I> {
         }
     }
 
+    /// Cancels a pending `Click` event by resetting from `WaitForMultiClick`
+    /// back to `Idle`. Returns `true` if a pending click was cancelled, `false`
+    /// if the state machine was not in `WaitForMultiClick`.
+    ///
+    /// Call this from an `Event::Release { click_follows: true, .. }` handler
+    /// to suppress the upcoming `Click` (e.g. when the release was part of a
+    /// multi-button combo gesture).
+    pub fn cancel_pending_click(&mut self) -> bool {
+        if matches!(self.state, State::WaitForMultiClick { .. }) {
+            self.state = State::Idle;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn update(
         &mut self,
         edge: Option<Edge>,
         now: I,
-    ) -> (Option<Event<I::Duration>>, ServiceTiming<I::Duration>) {
+    ) -> (Option<Event<I::Duration, I>>, ServiceTiming<I::Duration>) {
         match self.state {
             State::Idle => match edge {
                 Some(Edge::Press) => {
@@ -59,7 +75,7 @@ impl<I: TimeInstant> StateMachine<I> {
                         hold_level: 0,
                     };
                     (
-                        Some(Event::Press),
+                        Some(Event::Press { at: now }),
                         ServiceTiming::Delay(self.config.hold_delay),
                     )
                 }
@@ -150,7 +166,7 @@ impl<I: TimeInstant> StateMachine<I> {
                         hold_level: 0,
                     };
                     (
-                        Some(Event::Press),
+                        Some(Event::Press { at: now }),
                         ServiceTiming::Delay(self.config.hold_delay),
                     )
                 }

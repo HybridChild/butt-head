@@ -1,11 +1,13 @@
-use crate::TimeDuration;
+use crate::{TimeDuration, TimeInstant};
 
 /// A button event produced by the state machine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Event<D: TimeDuration> {
+pub enum Event<D: TimeDuration, I: TimeInstant<Duration = D>> {
     /// The button was pressed. Fires immediately on press edge.
-    Press,
+    /// `at` is the timestamp of the press, identical to what
+    /// [`ButtHead::press_instant`] returns during the pressed state.
+    Press { at: I },
 
     /// The button was released. `duration` is the total time it was held.
     /// `click_follows` is `true` when a [`Event::Click`] will follow (the

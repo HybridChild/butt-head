@@ -7,7 +7,7 @@ pub trait TimeDuration: Copy + PartialEq + 'static {
 }
 
 /// Abstraction for a point in time.
-pub trait TimeInstant: Copy {
+pub trait TimeInstant: Copy + PartialEq {
     type Duration: TimeDuration;
     fn duration_since(&self, earlier: Self) -> Self::Duration;
     fn checked_add(self, duration: Self::Duration) -> Option<Self>;
