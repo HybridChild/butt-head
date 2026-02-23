@@ -38,7 +38,7 @@ impl TimeDuration for EmbassyDuration {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, defmt::Format)]
 struct EmbassyInstant(Instant);
 
 impl TimeInstant for EmbassyInstant {
