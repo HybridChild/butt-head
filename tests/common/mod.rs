@@ -21,7 +21,7 @@ impl TimeDuration for TestDuration {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TestInstant(pub u64);
 
 impl TestInstant {

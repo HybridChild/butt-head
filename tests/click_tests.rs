@@ -50,7 +50,8 @@ fn release_before_hold_delay_emits_release_with_correct_duration() {
     assert_eq!(
         result.event,
         Some(Event::Release {
-            duration: TestDuration(100)
+            duration: TestDuration(100),
+            click_follows: true,
         })
     );
 }
@@ -217,7 +218,8 @@ fn active_low_treats_high_signal_as_released() {
     assert_eq!(
         result.event,
         Some(Event::Release {
-            duration: TestDuration(100)
+            duration: TestDuration(100),
+            click_follows: true,
         })
     );
 }

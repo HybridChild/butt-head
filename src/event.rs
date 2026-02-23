@@ -8,7 +8,9 @@ pub enum Event<D: TimeDuration> {
     Press,
 
     /// The button was released. `duration` is the total time it was held.
-    Release { duration: D },
+    /// `click_follows` is `true` when a [`Event::Click`] will follow (the
+    /// release ends a click gesture), and `false` when it ends a hold gesture.
+    Release { duration: D, click_follows: bool },
 
     /// A complete click gesture (press + release, no hold).
     /// `count` starts at 1. Fires once after `click_timeout` expires with no

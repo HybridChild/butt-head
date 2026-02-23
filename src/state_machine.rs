@@ -77,7 +77,13 @@ impl<I: TimeInstant> StateMachine<I> {
                     if hold_level > 0 {
                         // A hold was emitted — this is not a click.
                         self.state = State::Idle;
-                        (Some(Event::Release { duration }), ServiceTiming::Idle)
+                        (
+                            Some(Event::Release {
+                                duration,
+                                click_follows: false,
+                            }),
+                            ServiceTiming::Idle,
+                        )
                     } else {
                         let new_count = click_count.saturating_add(1);
                         let at_max = self
@@ -95,7 +101,13 @@ impl<I: TimeInstant> StateMachine<I> {
                         } else {
                             ServiceTiming::Delay(self.config.click_timeout)
                         };
-                        (Some(Event::Release { duration }), timing)
+                        (
+                            Some(Event::Release {
+                                duration,
+                                click_follows: true,
+                            }),
+                            timing,
+                        )
                     }
                 }
                 _ => {

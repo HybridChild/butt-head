@@ -22,7 +22,7 @@ match result.event {
     Some(Event::Hold { clicks_before: 0, level: 0 })  => hold_started(),
     Some(Event::Hold { clicks_before: 1, .. })        => click_then_hold(),
     Some(Event::Press)                                => led_on(),
-    Some(Event::Release { duration })                 => led_off(),
+    Some(Event::Release { duration, .. })             => led_off(),
     _ => {}
 }
 ```
