@@ -6,7 +6,7 @@ use crate::{TimeDuration, TimeInstant};
 pub enum Event<D: TimeDuration, I: TimeInstant<Duration = D>> {
     /// The button was pressed. Fires immediately on press edge.
     /// `at` is the timestamp of the press, identical to what
-    /// [`ButtHead::press_instant`] returns during the pressed state.
+    /// [`crate::ButtHead::press_instant`] returns during the pressed state.
     Press { at: I },
 
     /// The button was released. `duration` is the total time it was held.
