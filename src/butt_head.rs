@@ -40,6 +40,12 @@ impl<I: TimeInstant> ButtHead<I> {
         self.prev_input
     }
 
+    /// Returns the instant at which the button was last pressed, or `None` if
+    /// the button is not currently pressed.
+    pub fn press_instant(&self) -> Option<I> {
+        self.state_machine.pressed_at()
+    }
+
     /// Returns how long the button has been continuously held, or `None` if it
     /// is not currently pressed.
     pub fn pressed_duration(&self, now: I) -> Option<I::Duration> {

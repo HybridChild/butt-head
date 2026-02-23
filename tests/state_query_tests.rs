@@ -50,3 +50,26 @@ fn pressed_duration_none_after_release() {
     button.update(false, TestInstant::ms(100));
     assert_eq!(button.pressed_duration(TestInstant::ms(200)), None);
 }
+
+// --- press_instant ---
+
+#[test]
+fn press_instant_none_initially() {
+    let button = new_button();
+    assert_eq!(button.press_instant(), None);
+}
+
+#[test]
+fn press_instant_some_after_press() {
+    let mut button = new_button();
+    button.update(true, TestInstant::ms(42));
+    assert_eq!(button.press_instant(), Some(TestInstant::ms(42)));
+}
+
+#[test]
+fn press_instant_none_after_release() {
+    let mut button = new_button();
+    button.update(true, TestInstant::ms(0));
+    button.update(false, TestInstant::ms(100));
+    assert_eq!(button.press_instant(), None);
+}

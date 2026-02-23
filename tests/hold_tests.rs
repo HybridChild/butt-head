@@ -81,7 +81,8 @@ fn release_after_hold_emits_release_with_correct_duration() {
     assert_eq!(
         result.event,
         Some(Event::Release {
-            duration: TestDuration(800)
+            duration: TestDuration(800),
+            click_follows: false,
         })
     );
 }

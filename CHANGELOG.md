@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `ButtHead::press_instant()` — returns the `TimeInstant` at which the button was last pressed, or `None` if not currently pressed; enables multi-button combo detection
+- `Event::Release::click_follows: bool` — `true` when a `Click` event will follow (click gesture), `false` when it ends a hold gesture
+
 ## [0.1.0] - 2026-02-21
 
 Initial public release.
